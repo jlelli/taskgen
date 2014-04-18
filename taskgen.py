@@ -127,13 +127,34 @@ def gen_tasksets(options):
         print ""
     
 def print_taskset(taskset, format, tsn):
+    header = """{
+        "resources" : 0,
+        "tasks" : {\n"""
+    footer1 = """   },
+        \"global\" : {"""
+    policy ="""\n\t\t\"default_policy\" : \"SCHED_DEADLINE\","""
+    footer2 = """\n\t\t\"duration\" : 10,
+                \"logdir\" : \"/tmp/\",
+                \"log_basename\" : \"rt-app\",
+                \"lock_pages\" : true
+        }
+    }"""
+
     outfile = open('GTS'+str(tsn)+'_'+str(numpy.size(taskset,0))+'tsk.txt', 'w')
-    outfile.write('name\texec_time\tperiod\tCPUs\n')
-    print "name\texec_time\tperiod\tCPUs"
+    outfile.write(header)
+
     for t in range(numpy.size(taskset,0)):
 	data = { 'N' : str(t+1), 'Ugen' : taskset[t][0], 'U' : taskset[t][1], 'T' : taskset[t][2], 'C' : taskset[t][3] }
-        print format % data,
-	outfile.write(format % data)
+        outfile.write("\t\t\"task" + str(t+1) + "\" : {\n")
+        outfile.write("\t\t\t\"exec\" : " + str(int(taskset[t][3])) + ",\n")
+        outfile.write("\t\t\t\"period\" : " + str(int(taskset[t][2])) + ",\n")
+        outfile.write("\t\t\t\"deadline\" : " + str(int(taskset[t][2])) + "\n")
+        outfile.write("\t\t},\n")
+
+    outfile.write("\t\t}\n")
+    outfile.write(footer1)
+    outfile.write(policy)
+    outfile.write(footer2)
 
 def main():
 
