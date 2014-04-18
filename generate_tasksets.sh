@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 
 if [ "$#" -lt 4 ]; then
     echo "requires taskgen.py"

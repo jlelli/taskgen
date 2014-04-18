@@ -130,15 +130,14 @@ def print_taskset(taskset, format, tsn):
     header = """{
         "resources" : 0,
         "tasks" : {\n"""
-    footer1 = """   },
-        \"global\" : {"""
+    footer1 = """\t\"global\" : {"""
     policy ="""\n\t\t\"default_policy\" : \"SCHED_DEADLINE\","""
     footer2 = """\n\t\t\"duration\" : 10,
                 \"logdir\" : \"/tmp/\",
                 \"log_basename\" : \"rt-app\",
                 \"lock_pages\" : true
         }
-    }"""
+}"""
 
     outfile = open('GTS'+str(tsn)+'_'+str(numpy.size(taskset,0))+'tsk.txt', 'w')
     outfile.write(header)
@@ -148,10 +147,17 @@ def print_taskset(taskset, format, tsn):
         outfile.write("\t\t\"task" + str(t+1) + "\" : {\n")
         outfile.write("\t\t\t\"exec\" : " + str(int(taskset[t][3])) + ",\n")
         outfile.write("\t\t\t\"period\" : " + str(int(taskset[t][2])) + ",\n")
-        outfile.write("\t\t\t\"deadline\" : " + str(int(taskset[t][2])) + "\n")
-        outfile.write("\t\t},\n")
+        #outfile.write("\t\t\t\"deadline\" : " + str(int(taskset[t][2])) + "\n")
+        outfile.write("\t\t\t\"hard_rsv\" : false,\n")
+        outfile.write("\t\t\t\"phases\" : {\n")
+        outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(int(taskset[t][3])) + " }\n")
+        outfile.write("\t\t\t}\n")
+	if t != numpy.size(taskset,0) - 1:
+        	outfile.write("\t\t},\n")
+	else:
+        	outfile.write("\t\t}\n")
 
-    outfile.write("\t\t}\n")
+    outfile.write("\t},\n")
     outfile.write(footer1)
     outfile.write(policy)
     outfile.write(footer2)
