@@ -132,8 +132,9 @@ def print_taskset(taskset, format, tsn):
         "tasks" : {\n"""
     footer1 = """\t\"global\" : {"""
     policy ="""\n\t\t\"default_policy\" : \"SCHED_DEADLINE\","""
-    footer2 = """\n\t\t\"duration\" : 10,
-                \"logdir\" : \"/tmp/\",
+    footer2 = """\n\t\t\"duration\" : 60,
+                \"logdir\" : \"./logs\",
+                \"gnuplot\" : true,
                 \"log_basename\" : \"rt-app\",
                 \"lock_pages\" : true
         }
@@ -142,15 +143,38 @@ def print_taskset(taskset, format, tsn):
     outfile = open('GTS'+str(tsn)+'_'+str(numpy.size(taskset,0))+'tsk.txt', 'w')
     outfile.write(header)
 
+    print "number of tasks: " + str(numpy.size(taskset,0))
+    third = numpy.size(taskset,0) / 3
+    print "one third:  " + str(third)
     for t in range(numpy.size(taskset,0)):
-	data = { 'N' : str(t+1), 'Ugen' : taskset[t][0], 'U' : taskset[t][1], 'T' : taskset[t][2], 'C' : taskset[t][3] }
-        outfile.write("\t\t\"task" + str(t+1) + "\" : {\n")
+	#data = { 'N' : str(t+1), 'Ugen' : taskset[t][0], 'U' : taskset[t][1], 'T' : taskset[t][2], 'C' : taskset[t][3] }
+        if (t < third):
+            outfile.write("\t\t\"task" + str(t+1) + "-p\" : {\n")
+        elif ((t >= third) and (t < 2 * third)):
+            outfile.write("\t\t\"task" + str(t+1) + "-es\" : {\n")
+        else:
+            outfile.write("\t\t\"task" + str(t+1) + "-ls\" : {\n")
         outfile.write("\t\t\t\"exec\" : " + str(int(taskset[t][3])) + ",\n")
         outfile.write("\t\t\t\"period\" : " + str(int(taskset[t][2])) + ",\n")
         #outfile.write("\t\t\t\"deadline\" : " + str(int(taskset[t][2])) + "\n")
         outfile.write("\t\t\t\"hard_rsv\" : false,\n")
         outfile.write("\t\t\t\"phases\" : {\n")
-        outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(int(taskset[t][3])) + " }\n")
+        if (t < third):
+            outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(int(taskset[t][3])) + " }\n")
+        elif ((t >= third) and (t < 2 * third)):
+	    r0 = int(taskset[t][3] * 0.1)
+	    s0 = int(taskset[t][3] * 0.6)
+	    r1 = int(taskset[t][3] - s0 - r0)
+            outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(r0) + " },\n")
+            outfile.write("\t\t\t\t\"s0\" : { \"duration\" : " + str(s0) + " },\n")
+            outfile.write("\t\t\t\t\"r1\" : { \"duration\" : " + str(r1) + " }\n")
+        else:
+	    r0 = int(taskset[t][3] * 0.7)
+	    s0 = int(taskset[t][3] * 0.1)
+	    r1 = int(taskset[t][3] - s0 - r0)
+            outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(r0) + " },\n")
+            outfile.write("\t\t\t\t\"s0\" : { \"duration\" : " + str(s0) + " },\n")
+            outfile.write("\t\t\t\t\"r1\" : { \"duration\" : " + str(r1) + " }\n")
         outfile.write("\t\t\t}\n")
 	if t != numpy.size(taskset,0) - 1:
         	outfile.write("\t\t},\n")
