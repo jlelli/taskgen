@@ -44,6 +44,10 @@ import numpy
 import optparse
 import sys
 import textwrap
+import os
+
+valid = 0
+invalid = 0
 
 def StaffordRandFixedSum(n, u, nsets):
 
@@ -113,65 +117,94 @@ def gen_periods(n, nsets, min, max, gran, dist):
     return periods
 
 def gen_tasksets(options):
-    x = StaffordRandFixedSum(options.n, options.util, options.nsets)
-    periods = gen_periods(options.n, options.nsets, options.permin, options.permax, options.pergran, options.perdist)
-    #iterate through each row (which represents utils for a taskset)
-    for i in range(numpy.size(x, axis=0)):
-        C = x[i] * periods[i]
-        if options.round_C:
-            C = numpy.round(C, decimals=0)
-        
-        taskset = numpy.c_[x[i], C / periods[i], periods[i], C]
+    global valid
 
-        print_taskset(taskset, options.format, i)
-        print ""
+    while (valid < options.nsets):    
+        x = StaffordRandFixedSum(options.n, options.util, 1)
+        periods = gen_periods(options.n, 1, options.permin, options.permax, options.pergran, options.perdist)
+        #iterate through each row (which represents utils for a taskset)
+        for i in range(numpy.size(x, axis=0)):
+            C = x[i] * periods[i]
+            if options.round_C:
+                C = numpy.round(C, decimals=0)
+            
+            taskset = numpy.c_[x[i], C / periods[i], periods[i], C]
+    
+            print_taskset(taskset, options.format, i)
     
 def print_taskset(taskset, format, tsn):
+    global valid, invalid
+    #rt-app ovhd        
+    ovhd = 0.93
+    ps = 0.5
+    ps1 = 0.1
+        
+    
     header = """{
         "resources" : 0,
         "tasks" : {\n"""
     footer1 = """\t\"global\" : {"""
     policy ="""\n\t\t\"default_policy\" : \"SCHED_DEADLINE\","""
     footer2 = """\n\t\t\"duration\" : 60,
-                \"logdir\" : \"./logs\",
-                \"gnuplot\" : true,
+                \"logdir\" : \"/tmp/\",
                 \"log_basename\" : \"rt-app\",
                 \"lock_pages\" : true
         }
 }"""
-
-    outfile = open('GTS'+str(tsn)+'_'+str(numpy.size(taskset,0))+'tsk.txt', 'w')
+    file_str = 'GTS' + str(valid) + '_' + str(numpy.size(taskset,0)) + 'tsk.txt'
+    outfile = open(file_str, 'w')
     outfile.write(header)
 
-    print "number of tasks: " + str(numpy.size(taskset,0))
     third = numpy.size(taskset,0) / 3
-    print "one third:  " + str(third)
     for t in range(numpy.size(taskset,0)):
-	#data = { 'N' : str(t+1), 'Ugen' : taskset[t][0], 'U' : taskset[t][1], 'T' : taskset[t][2], 'C' : taskset[t][3] }
+        p = int(taskset[t][2])
+        q = int(taskset[t][3])
+        ex_time = q * ovhd
+        
         if (t < third):
             outfile.write("\t\t\"task" + str(t+1) + "-p\" : {\n")
         elif ((t >= third) and (t < 2 * third)):
             outfile.write("\t\t\"task" + str(t+1) + "-es\" : {\n")
         else:
             outfile.write("\t\t\"task" + str(t+1) + "-ls\" : {\n")
-        outfile.write("\t\t\t\"exec\" : " + str(int(taskset[t][3])) + ",\n")
-        outfile.write("\t\t\t\"period\" : " + str(int(taskset[t][2])) + ",\n")
+        outfile.write("\t\t\t\"exec\" : " + str(q) + ",\n")
+        outfile.write("\t\t\t\"period\" : " + str(p) + ",\n")
         #outfile.write("\t\t\t\"deadline\" : " + str(int(taskset[t][2])) + "\n")
         outfile.write("\t\t\t\"hard_rsv\" : false,\n")
         outfile.write("\t\t\t\"phases\" : {\n")
         if (t < third):
-            outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(int(taskset[t][3])) + " }\n")
+            outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(int(ex_time)) + " }\n")
         elif ((t >= third) and (t < 2 * third)):
-	    r0 = int(taskset[t][3] * 0.1)
-	    s0 = int(taskset[t][3] * 0.6)
-	    r1 = int(taskset[t][3] - s0 - r0)
+            slack = p - q
+            s = ex_time * ps
+            s0 = int(s / ps1)
+            if (s0 > slack):
+                outfile.close()
+                os.remove(file_str)
+                invalid += 1
+                return 0
+            
+            #here we account for rt-app intrinsic ovhd
+            c = ex_time - s
+            r0 = int(c * 0.1)
+            r1 = int(c - r0)
             outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(r0) + " },\n")
             outfile.write("\t\t\t\t\"s0\" : { \"duration\" : " + str(s0) + " },\n")
             outfile.write("\t\t\t\t\"r1\" : { \"duration\" : " + str(r1) + " }\n")
         else:
-	    r0 = int(taskset[t][3] * 0.7)
-	    s0 = int(taskset[t][3] * 0.1)
-	    r1 = int(taskset[t][3] - s0 - r0)
+            slack = p - q
+            s = ex_time * ps
+            s0 = int(s / ps1)
+            if (s0 > slack):
+                outfile.close()
+                os.remove(file_str)
+                invalid += 1
+                return
+            
+            #here we account for rt-app intrinsic ovhd
+            c = ex_time - s
+            r0 = int(c * 0.7)
+            r1 = int(c - r0)
             outfile.write("\t\t\t\t\"r0\" : { \"duration\" : " + str(r0) + " },\n")
             outfile.write("\t\t\t\t\"s0\" : { \"duration\" : " + str(s0) + " },\n")
             outfile.write("\t\t\t\t\"r1\" : { \"duration\" : " + str(r1) + " }\n")
@@ -185,6 +218,8 @@ def print_taskset(taskset, format, tsn):
     outfile.write(footer1)
     outfile.write(policy)
     outfile.write(footer2)
+    outfile.close()
+    valid += 1
 
 def main():
 
@@ -308,6 +343,7 @@ def main():
     options.format = options.format.replace("\\n", "\n")
 
     gen_tasksets(options)
+    print str(valid) + " valid tasksets over " + str(valid + invalid) + " generated"
     
     return 0
     

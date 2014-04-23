@@ -21,7 +21,7 @@ GEN="${PROGS_DIR}taskgen.py"
 PERIOD_MIN=10000
 PERIOD_MAX=100000
 GRAN=1000
-U="0.6 0.7 0.8"
+U="0.7 0.8 0.9"
 
 rm ?TS* 2> /dev/null
 rm -rf ${BASE_PATH} 2> /dev/null
@@ -35,7 +35,7 @@ for i in `seq $MIN_TASKS $NUM_CPUS $MAX_TASKS`;do
 		GLOB_UTIL=`echo ${j}*${NUM_CPUS} | bc`
 		printf "${GLOB_UTIL}\t"
 		mkdir -p ${DEST_DIR}
-		${GEN} -p ${PERIOD_MIN} -q ${PERIOD_MAX} -g ${GRAN} -u ${GLOB_UTIL} -n ${i} -s ${TASK_SETS} > /dev/null 2>&1
+		${GEN} -p ${PERIOD_MIN} -q ${PERIOD_MAX} -g ${GRAN} -u ${GLOB_UTIL} -n ${i} -s ${TASK_SETS}
 		mv ?TS* ${DEST_DIR}
 	done
 	printf "\n"
