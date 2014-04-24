@@ -161,6 +161,11 @@ def print_taskset(taskset, format, tsn):
         p = int(taskset[t][2])
         q = int(taskset[t][3])
         ex_time = q * ovhd
+        if (q < 1100):
+                outfile.close()
+                os.remove(file_str)
+                invalid += 1
+                return 0
         
         if (t < third):
             outfile.write("\t\t\"task" + str(t+1) + "-p\" : {\n")
