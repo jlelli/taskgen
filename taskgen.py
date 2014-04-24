@@ -136,7 +136,7 @@ def print_taskset(taskset, format, tsn):
     global valid, invalid
     #rt-app ovhd        
     ovhd = 0.93
-    ps = 0.5
+    ps = 0.1
     ps1 = 0.1
         
     
@@ -148,6 +148,7 @@ def print_taskset(taskset, format, tsn):
     footer2 = """\n\t\t\"duration\" : 60,
                 \"logdir\" : \"/tmp/\",
                 \"log_basename\" : \"rt-app\",
+                \"spacing\" : 40,
                 \"lock_pages\" : true
         }
 }"""
